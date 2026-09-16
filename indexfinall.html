@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AITU SmartCheck</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .credits {
+            font-size: 13px;
+            color: #555;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .main-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        .box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 650px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #0056b3;
+            margin: 0 0 5px 0;
+        }
+
+        .sub-info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .sub-info div {
+            margin-top: 3px;
+        }
+
+        .content-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .form-section {
+            flex: 1;
+        }
+
+        .photo-section {
+            width: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .avatar-card {
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #0056b3;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #fafafa;
+        }
+
+        .avatar-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-label {
+            font-size: 12px;
+            color: #777;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 10px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+
+        li {
+            padding: 10px;
+            background: #eef6ff;
+            border-bottom: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        li img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        @media (max-width: 500px) {
+            .content-layout {
+                flex-direction: column-reverse;
+                align-items: center;
+            }
+            .form-section {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="credits">By Abdulsamad, Asemay and Zamanbek</div>
+
+    <div class="main-wrapper">
+        <div class="box">
+            <h2>AITU SmartCheck</h2>
+            
+            <div class="sub-info">
+                <strong>EE-2601</strong>
+                <div>ICT subject by Bissengaliyeva</div>
+            </div>
+
+            <div id="alreadyMarkedAlert" class="alert hidden">
+                ❌ You have already submitted from this device!
+            </div>
+
+            <div class="content-layout">
+                <div class="form-section">
+                    <form id="attendanceForm" onsubmit="addUser(event)">
+                        <label>Full Name:</label>
+                        <input type="text" id="userName" placeholder="Enter your name" required>
+
+                        <label>Barcode / ID:</label>
+                        <input type="text" id="userBarcode" placeholder="Enter barcode" required>
+
+                        <button type="submit" id="submitBtn">Check In</button>
+                    </form>
+                </div>
+
+                <div class="photo-section">
+                    <div class="avatar-card">
+                        <img id="userPhoto" src="closed" alt="Status Photo">
+                    </div>
+                    <div class="photo-label" id="photoStatus">Status: Pending</div>
+                </div>
+            </div>
+
+            <hr style="margin-top: 25px;">
+
+            <h3 style="color: #0056b3; margin-bottom: 10px;">Attendance List:</h3>
+            <ul id="userList">
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const fallbackSVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2328a745'/%3E%3Cpath d='M30 50 L45 65 L75 35' stroke='white' stroke-width='8' fill='none'/%3E%3C/svg%3E";
+
+        // Поиск файла closed
+        function setClosedPhoto(element) {
+            element.src = "closed";
+            element.onerror = function() {
+                this.src = "closed.jpg";
+                this.onerror = function() {
+                    this.src = "closed.png";
+                };
+            };
+        }
+
+        // Поиск файла open
+        function setOpenPhoto(element) {
+            element.src = "open";
+            element.onerror = function() {
+                this.src = "open.jpg";
+                this.onerror = function() {
+                    this.src = "open.png";
+                    this.onerror = function() {
+                        this.src = fallbackSVG;
+                    };
+                };
+            };
+        }
+
+        window.onload = function() {
+            const photoImg = document.getElementById('userPhoto');
+            
+            if (localStorage.getItem('aitu_marked') === 'true') {
+                blockForm();
+                setOpenPhoto(photoImg);
+                document.getElementById('photoStatus').innerText = "Status: Marked";
+            } else {
+                setClosedPhoto(photoImg);
+            }
+        };
+
+        function addUser(event) {
+            event.preventDefault();
+
+            if (localStorage.getItem('aitu_marked') === 'true') {
+                alert("Duplicate submission is restricted!");
+                return;
+            }
+
+            const name = document.getElementById('userName').value;
+            const barcode = document.getElementById('userBarcode').value;
+            
+            const photoImg = document.getElementById('userPhoto');
+            setOpenPhoto(photoImg);
+            document.getElementById('photoStatus').innerText = name;
+
+            const list = document.getElementById('userList');
+            const li = document.createElement('li');
+            const listImg = document.createElement('img');
+            setOpenPhoto(listImg);
+
+            li.appendChild(listImg);
+            
+            const textDiv = document.createElement('div');
+            textDiv.innerHTML = `<b>${name}</b> (Barcode: ${barcode})`;
+            li.appendChild(textDiv);
+
+            list.appendChild(li);
+
+            localStorage.setItem('aitu_marked', 'true');
+            blockForm();
+        }
+
+        function blockForm() {
+            document.getElementById('alreadyMarkedAlert').classList.remove('hidden');
+            document.getElementById('userName').disabled = true;
+            document.getElementById('userBarcode').disabled = true;
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerText = "Access Restricted";
+        }
+    </script>
+
+</body>
+</html>
