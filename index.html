@@ -305,5 +305,18 @@
         }
     </script>
 
+<div style="text-align: center; margin-top: 15px;">
+    <button onclick="resetDemo()" style="background: #6c757d; font-size: 12px; padding: 5px 10px; width: auto;">Reset Demo State</button>
+</div>
+
+<script>
+    function resetDemo() {
+        
+        localStorage.removeItem('aitu_marked');
+        
+        location.reload();
+    }
+</script>
+
 </body>
 </html>
