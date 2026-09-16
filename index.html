@@ -177,6 +177,10 @@
             }
         }
     </style>
+
+    <!-- Подключаем Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -218,36 +222,46 @@
 
             <hr style="margin-top: 25px;">
 
-            <h3 style="color: #0056b3; margin-bottom: 10px;">Attendance List:</h3>
+            <h3 style="color: #0056b3; margin-bottom: 10px;">Live Attendance List:</h3>
             <ul id="userList">
             </ul>
         </div>
     </div>
 
     <script>
+        // ВСТАВЬ СВОИ ДАННЫЕ ИЗ FIREBASE СЮДА
+        const firebaseConfig = {
+  apiKey: "AIzaSyAJBvqzKoabX5PCl2xNp8Vp_ICsEsZsKLU",
+  authDomain: "aitu-smartcheck.firebaseapp.com",
+  projectId: "aitu-smartcheck",
+  storageBucket: "aitu-smartcheck.firebasestorage.app",
+  messagingSenderId: "221592568775",
+  appId: "1:221592568775:web:458e900637bb20b96b4fe2",
+  measurementId: "G-SRYZGZ2QR4"
+}
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const usersRef = database.ref('attendance');
+
         const fallbackSVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2328a745'/%3E%3Cpath d='M30 50 L45 65 L75 35' stroke='white' stroke-width='8' fill='none'/%3E%3C/svg%3E";
 
-        // Поиск файла closed
         function setClosedPhoto(element) {
             element.src = "closed";
             element.onerror = function() {
                 this.src = "closed.jpg";
-                this.onerror = function() {
-                    this.src = "closed.png";
-                };
+                this.onerror = function() { this.src = "closed.png"; };
             };
         }
 
-        // Поиск файла open
         function setOpenPhoto(element) {
             element.src = "open";
             element.onerror = function() {
                 this.src = "open.jpg";
                 this.onerror = function() {
                     this.src = "open.png";
-                    this.onerror = function() {
-                        this.src = fallbackSVG;
-                    };
+                    this.onerror = function() { this.src = fallbackSVG; };
                 };
             };
         }
@@ -262,6 +276,28 @@
             } else {
                 setClosedPhoto(photoImg);
             }
+
+            // РЕАЛЬНОЕ ВРЕМЯ: Подписываемся на обновления базы данных
+            usersRef.on('value', (snapshot) => {
+                const list = document.getElementById('userList');
+                list.innerHTML = ''; // Очищаем список
+
+                const data = snapshot.val();
+                if (data) {
+                    Object.values(data).forEach(user => {
+                        const li = document.createElement('li');
+                        const listImg = document.createElement('img');
+                        setOpenPhoto(listImg);
+
+                        li.appendChild(listImg);
+                        const textDiv = document.createElement('div');
+                        textDiv.innerHTML = `<b>${user.name}</b> (Barcode: ${user.barcode})`;
+                        li.appendChild(textDiv);
+
+                        list.appendChild(li);
+                    });
+                }
+            });
         };
 
         function addUser(event) {
@@ -275,22 +311,16 @@
             const name = document.getElementById('userName').value;
             const barcode = document.getElementById('userBarcode').value;
             
+            // Записываем данные в ОБЛАКО (доступно всем)
+            usersRef.push({
+                name: name,
+                barcode: barcode,
+                timestamp: Date.now()
+            });
+
             const photoImg = document.getElementById('userPhoto');
             setOpenPhoto(photoImg);
             document.getElementById('photoStatus').innerText = name;
-
-            const list = document.getElementById('userList');
-            const li = document.createElement('li');
-            const listImg = document.createElement('img');
-            setOpenPhoto(listImg);
-
-            li.appendChild(listImg);
-            
-            const textDiv = document.createElement('div');
-            textDiv.innerHTML = `<b>${name}</b> (Barcode: ${barcode})`;
-            li.appendChild(textDiv);
-
-            list.appendChild(li);
 
             localStorage.setItem('aitu_marked', 'true');
             blockForm();
@@ -304,19 +334,6 @@
             document.getElementById('submitBtn').innerText = "Access Restricted";
         }
     </script>
-
-<div style="text-align: center; margin-top: 15px;">
-    <button onclick="resetDemo()" style="background: #6c757d; font-size: 12px; padding: 5px 10px; width: auto;">Reset Demo State</button>
-</div>
-
-<script>
-    function resetDemo() {
-        
-        localStorage.removeItem('aitu_marked');
-        
-        location.reload();
-    }
-</script>
 
 </body>
 </html>
