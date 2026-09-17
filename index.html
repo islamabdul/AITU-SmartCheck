@@ -335,5 +335,26 @@
         }
     </script>
 
+    <!-- Кнопка полной очистки и разблокировки -->
+<div style="text-align: center; margin-top: 20px;">
+    <button onclick="fullReset()" style="background: #dc3545; font-size: 12px; padding: 6px 12px; width: auto; font-weight: normal;">
+        🔄 Reset Database & Unlock Form
+    </button>
+</div>
+
+<script>
+    function fullReset() {
+        if (confirm("Clear all online data and unlock the form on this device?")) {
+            // 1. Очищаем базу данных Firebase для всех
+            usersRef.remove().then(() => {
+                // 2. Снимаем локальную блокировку с браузера
+                localStorage.removeItem('aitu_marked');
+                // 3. Перезагружаем страницу
+                location.reload();
+            });
+        }
+    }
+</script>
+
 </body>
 </html>
