@@ -10,6 +10,8 @@
             background-color: #f4f7f6;
             padding: 20px;
             margin: 0;
+            position: relative;
+            min-height: 90vh;
         }
 
         .credits {
@@ -167,6 +169,20 @@
             object-fit: cover;
         }
 
+        /* Надпись справа снизу */
+        .bottom-update-tag {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            font-size: 12px;
+            color: #888;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
         @media (max-width: 500px) {
             .content-layout {
                 flex-direction: column-reverse;
@@ -178,7 +194,7 @@
         }
     </style>
 
-    <!-- Подключаем Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
@@ -225,22 +241,31 @@
             <h3 style="color: #0056b3; margin-bottom: 10px;">Live Attendance List:</h3>
             <ul id="userList">
             </ul>
+
+            <!-- Кнопка сброса ТОЛЬКО своей записи -->
+            <div id="resetContainer" class="hidden" style="text-align: center; margin-top: 15px;">
+                <button onclick="resetMyRecord()" style="background: #6c757d; font-size: 12px; padding: 6px 12px; width: auto; font-weight: normal;">
+                    🔄 Reset My Status & Re-enter
+                </button>
+            </div>
         </div>
     </div>
 
-    <script>
-        // ВСТАВЬ СВОИ ДАННЫЕ ИЗ FIREBASE СЮДА
-        const firebaseConfig = {
-  apiKey: "AIzaSyAJBvqzKoabX5PCl2xNp8Vp_ICsEsZsKLU",
-  authDomain: "aitu-smartcheck.firebaseapp.com",
-  projectId: "aitu-smartcheck",
-  storageBucket: "aitu-smartcheck.firebasestorage.app",
-  messagingSenderId: "221592568775",
-  appId: "1:221592568775:web:458e900637bb20b96b4fe2",
-  measurementId: "G-SRYZGZ2QR4"
-}
+    <!-- Тег справа снизу -->
+    <div class="bottom-update-tag">Assignment 1 Update</div>
 
-        // Инициализация Firebase
+    <script>
+        // Конфиг Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", 
+            authDomain: "aitu-smartcheck.firebaseapp.com",
+            databaseURL: "https://aitu-smartcheck-default-rtdb.firebaseio.com",
+            projectId: "aitu-smartcheck",
+            storageBucket: "aitu-smartcheck.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const usersRef = database.ref('attendance');
@@ -277,10 +302,10 @@
                 setClosedPhoto(photoImg);
             }
 
-            // РЕАЛЬНОЕ ВРЕМЯ: Подписываемся на обновления базы данных
+            // Слушаем изменения в базе в реальном времени
             usersRef.on('value', (snapshot) => {
                 const list = document.getElementById('userList');
-                list.innerHTML = ''; // Очищаем список
+                list.innerHTML = '';
 
                 const data = snapshot.val();
                 if (data) {
@@ -311,18 +336,24 @@
             const name = document.getElementById('userName').value;
             const barcode = document.getElementById('userBarcode').value;
             
-            // Записываем данные в ОБЛАКО (доступно всем)
-            usersRef.push({
+            // Создаем новую уникальную запись в Firebase
+            const newRecordRef = usersRef.push();
+            const recordKey = newRecordRef.key;
+
+            newRecordRef.set({
                 name: name,
                 barcode: barcode,
                 timestamp: Date.now()
             });
 
+            // Сохраняем ID своей записи, чтобы сбросить ТОЛЬКО её
+            localStorage.setItem('my_record_key', recordKey);
+            localStorage.setItem('aitu_marked', 'true');
+
             const photoImg = document.getElementById('userPhoto');
             setOpenPhoto(photoImg);
             document.getElementById('photoStatus').innerText = name;
 
-            localStorage.setItem('aitu_marked', 'true');
             blockForm();
         }
 
@@ -332,29 +363,26 @@
             document.getElementById('userBarcode').disabled = true;
             document.getElementById('submitBtn').disabled = true;
             document.getElementById('submitBtn').innerText = "Access Restricted";
+            document.getElementById('resetContainer').classList.remove('hidden');
+        }
+
+        // Функция удаления ТОЛЬКО своей записи
+        function resetMyRecord() {
+            const myKey = localStorage.getItem('my_record_key');
+            
+            if (myKey) {
+                // Удаляем из Firebase только свою запись по ключу
+                database.ref('attendance/' + myKey).remove();
+            }
+
+            // Сбрасываем локальные ключи
+            localStorage.removeItem('aitu_marked');
+            localStorage.removeItem('my_record_key');
+
+            // Разблокируем форму и перезагружаем
+            location.reload();
         }
     </script>
-
-    <!-- Кнопка полной очистки и разблокировки -->
-<div style="text-align: center; margin-top: 20px;">
-    <button onclick="fullReset()" style="background: #dc3545; font-size: 12px; padding: 6px 12px; width: auto; font-weight: normal;">
-        🔄 Reset Database & Unlock Form
-    </button>
-</div>
-
-<script>
-    function fullReset() {
-        if (confirm("Clear all online data and unlock the form on this device?")) {
-            // 1. Очищаем базу данных Firebase для всех
-            usersRef.remove().then(() => {
-                // 2. Снимаем локальную блокировку с браузера
-                localStorage.removeItem('aitu_marked');
-                // 3. Перезагружаем страницу
-                location.reload();
-            });
-        }
-    }
-</script>
 
 </body>
 </html>
